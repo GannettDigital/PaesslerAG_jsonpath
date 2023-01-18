@@ -6,15 +6,17 @@ import (
 	"strconv"
 
 	"github.com/PaesslerAG/gval"
+
+	"golang.org/x/exp/slices"
 )
 
-//plainSelector evaluate exactly one result
+// plainSelector evaluate exactly one result
 type plainSelector func(c context.Context, r, v interface{}) (interface{}, error)
 
-//ambiguousSelector evaluate wildcard
+// ambiguousSelector evaluate wildcard
 type ambiguousSelector func(c context.Context, r, v interface{}, match ambiguousMatcher)
 
-//@
+// @
 func currentElementSelector() plainSelector {
 	return func(c context.Context, r, v interface{}) (interface{}, error) {
 		return c.Value(currentElement{}), nil
@@ -27,7 +29,7 @@ func currentContext(c context.Context, v interface{}) context.Context {
 	return context.WithValue(c, currentElement{}, v)
 }
 
-//.x, [x]
+// .x, [x]
 func directSelector(key gval.Evaluable) plainSelector {
 	return func(c context.Context, r, v interface{}) (interface{}, error) {
 
@@ -91,7 +93,7 @@ func selectValue(c context.Context, key gval.Evaluable, r, v interface{}) (value
 	}
 }
 
-//..
+// ..
 func mapperSelector() ambiguousSelector {
 	return mapper
 }
@@ -113,14 +115,26 @@ func visitAll(v interface{}, visit func(key string, v interface{})) {
 			visit(k, e)
 		}
 	case map[string]interface{}:
+		// Traverse object key patterns in predictable order.
+		type stable struct {
+			k string
+			e interface{}
+		}
+		x := make([]stable, 0, len(v))
 		for k, e := range v {
-			visit(k, e)
+			x = append(x, stable{k, e})
+		}
+		slices.SortFunc[stable](x, func(a, b stable) bool {
+			return a.k < b.k
+		})
+		for _, w := range x {
+			visit(w.k, w.e)
 		}
 	}
 
 }
 
-//[? ]
+// [? ]
 func filterSelector(filter gval.Evaluable) ambiguousSelector {
 	return func(c context.Context, r, v interface{}, match ambiguousMatcher) {
 		visitAll(v, func(wildcard string, v interface{}) {
@@ -135,7 +149,7 @@ func filterSelector(filter gval.Evaluable) ambiguousSelector {
 	}
 }
 
-//[::]
+// [::]
 func rangeSelector(min, max, step gval.Evaluable) ambiguousSelector {
 	return func(c context.Context, r, v interface{}, match ambiguousMatcher) {
 		cs, ok := v.([]interface{})

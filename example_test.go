@@ -8,7 +8,7 @@ import (
 
 	"github.com/PaesslerAG/gval"
 
-	"github.com/PaesslerAG/jsonpath"
+	"github.com/GannettDigital/PaesslerAG_jsonpath"
 )
 
 func ExampleGet() {
