@@ -1,13 +1,13 @@
 package jsonpath
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/PaesslerAG/gval"
-
-	"golang.org/x/exp/slices"
 )
 
 // plainSelector evaluate exactly one result
@@ -124,8 +124,8 @@ func visitAll(v interface{}, visit func(key string, v interface{})) {
 		for k, e := range v {
 			x = append(x, stable{k, e})
 		}
-		slices.SortFunc[stable](x, func(a, b stable) bool {
-			return a.k < b.k
+		slices.SortFunc(x, func(a, b stable) int {
+			return cmp.Compare(a.k, b.k)
 		})
 		for _, w := range x {
 			visit(w.k, w.e)
